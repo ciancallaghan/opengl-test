@@ -2,9 +2,9 @@ OBJS = main.cpp
 
 CC = g++
 
-COMPILER_FLAGS = -w
+# COMPILER_FLAGS = -w
 
-LINKER_FLAGS = -lSDL2 -lSDL2_image
+LINKER_FLAGS = -lSDL2
 
 OBJ_NAME = pong
 
