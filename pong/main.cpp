@@ -26,23 +26,25 @@ SDL_Renderer* gRenderer = NULL;
 class Paddle
 {
     public:
-        int x;
-        int y;
-        int width;
-        int height;
-        int vel = 1;
+        float x;
+        float y;
+        float width;
+        float height;
+        float middle_y;
+        float vel = 0.5;
 
-        Paddle(int x_, int y_, int width_, int height_) {
+        Paddle(float x_, float y_, float width_, float height_) {
             x = x_;
             y = y_;
             width = width_;
             height = height_;
+            middle_y = y + height / 2;
         }
 
         void draw(SDL_Renderer* renderer) {
             SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-            SDL_Rect paddle = {x, y, width, height};
-            SDL_RenderFillRect(renderer, &paddle);
+            SDL_FRect paddle = {x, y, width, height};
+            SDL_RenderFillRectF(renderer, &paddle);
         }
 
         void move(int up) {
@@ -57,23 +59,29 @@ class Paddle
 class Ball
 {
     public:
-        int x;
-        int y;
-        int radius;
-        int max_vel = 1;
-        int x_vel = max_vel;
-        int y_vel = 0;
+        float x;
+        float y;
+        float original_x;
+        float original_y;
+        float radius;
+        float middle_y;
+        float max_vel = 0.4;
+        float x_vel = max_vel;
+        float y_vel = 0;
 
-    Ball(int x_, int y_, int radius_) {
+    Ball(float x_, float y_, float radius_) {
         x = x_;
         y = y_;
+        original_x = x_;
+        original_y = y_;
         radius = radius_;
+        middle_y = y - radius / 2;
     }
     
     void draw(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        SDL_Rect ball = {x, y, radius, radius};
-        SDL_RenderFillRect(renderer, &ball);
+        SDL_FRect ball = {x, y, radius, radius};
+        SDL_RenderFillRectF(renderer, &ball);
     }
 
     void move() {
@@ -108,11 +116,6 @@ draw(SDL_Renderer* renderer, Paddle paddles[2], Ball ball)
     ball.draw(renderer);
 
     SDL_RenderPresent(renderer);
-}
-
-void
-collision(Ball ball, Paddle left_paddle, Paddle right_paddle)
-{
 }
 
 bool
@@ -213,19 +216,77 @@ main(int argc, char* args[])
                 left_paddle.move(0);
             }
 
-            if (ball.x_vel < 0) {
-                if (ball.y >= left_paddle.y && ball.y <= left_paddle.y + left_paddle.height) {
-                    if (ball.x - ball.radius <= left_paddle.x + left_paddle.width) {
-                        ball.x_vel *= -1;
+            
+            if (ball.y + ball.radius >= SCREEN_HEIGHT) {
+                ball.y_vel *= -1;
+            }
+            if (ball.y < 0) {
+                ball.y_vel *= -1;
+            }
+
+            if (ball.y >= left_paddle.y && ball.y <= left_paddle.y + left_paddle.height) {
+                if (ball.x <= left_paddle.x + left_paddle.width) {
+                    ball.x_vel *= -1;
+
+                    if (ball.y < left_paddle.y + (left_paddle.height / 2)) {
+                    ball.y_vel += 0.1;
+                    } else if (ball.y > left_paddle.y + (left_paddle.height / 2)) {
+                        ball.y_vel -= 0.1;
+                    } else {
+                        ball.y_vel = 0;
                     }
+
+                    ball.y_vel *= -1;
                 }
-            } else {
-                if (ball.y >= right_paddle.y && ball.y <= right_paddle.y + right_paddle.height) {
-                    if (ball.x + ball.radius >= right_paddle.x) {
-                        ball.x_vel *= -1;
+            } 
+            if (ball.y >= right_paddle.y && ball.y <= right_paddle.y + right_paddle.height){
+                if (ball.x + ball.radius >= right_paddle.x) {
+                    ball.x_vel *= -1;
+
+                    if (ball.y < right_paddle.y + (right_paddle.height / 2)) {
+                    ball.y_vel += 0.1;
+                    } else if (ball.y > right_paddle.y + (right_paddle.height / 2)) {
+                        ball.y_vel -= 0.1;
+                    } else {
+                        ball.y_vel = 0;
                     }
+
+                    ball.y_vel *= -1;
                 }
             }
+
+            // if (ball.x_vel < 0) {
+            //     if (ball.y >= left_paddle.y && ball.y <= left_paddle.y + left_paddle.height) {
+            //         if (ball.x - ball.radius <= left_paddle.x + left_paddle.width) {
+            //             ball.x_vel *= -1;
+            //
+            //             int middle_y = left_paddle.y + left_paddle.height / 2;
+            //             int diff_in_y = middle_y - ball.y;
+            //             int reduction_factor = (left_paddle.height / 2) / ball.max_vel;
+            //             int y_vel = diff_in_y / reduction_factor;
+            //             ball.y_vel += -1 * y_vel;
+            //         }
+            //     }
+            // } else {
+            //     if (ball.y >= right_paddle.y && ball.y <= right_paddle.y + right_paddle.height) {
+            //         if (ball.x + ball.radius >= right_paddle.x) {
+            //             ball.x_vel *= -1;
+            //
+            //             int middle_y = right_paddle.y + right_paddle.height / 2;
+            //             int diff_in_y = middle_y - ball.y;
+            //             int reduction_factor = (right_paddle.height / 2) / ball.max_vel;
+            //             int y_vel = diff_in_y / reduction_factor;
+            //             ball.y_vel = -1 * y_vel;
+            //         }
+            //     }
+            // }
+
+            if (ball.x < 0 || ball.x > SCREEN_WIDTH) {
+                ball.x = ball.original_x;
+                ball.x_vel *= -1;
+                ball.y_vel = 0;
+            }
+
             Paddle paddles[2] = {left_paddle, right_paddle};
             draw(gRenderer, paddles, ball);
             ball.move();
